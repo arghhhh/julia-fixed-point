@@ -9,13 +9,13 @@ module FixPtImpl
 
 import FixedWidths
 
-struct FixPt{e,T} <: Number
+struct FixPt{e,T} <: Real
         n::T
 end
 
 # # extract exponent from FixPt number or Type:
-# fixpt_exponent( n::FixPt{e,T} ) where {e,T} = e
-# fixpt_exponent( ::Type{FixPt{e,T}} ) where {e,T} = e
+get_exponent( n::FixPt{e,T} ) where {e,T} = e
+get_exponent( ::Type{FixPt{e,T}} ) where {e,T} = e
 
 # show FixPt at the value level:
 function Base.show( io::IO, f::FixPt{e} ) where {e}
@@ -54,10 +54,13 @@ function FixPt( n::Float64 )
         return FixPt{e,Int64}( r.num )
 end
 
-
+# round and clamp a Float to a FixPt
 function Base.round( ::Type{FixPt{e,T}}, x::Float64, mode::RoundingMode=Base.Rounding.RoundNearest ) where {e,T}
         n1 = round( Int64, ldexp(x,-e), mode )
-        return  FixPt{e,T}( n1 )
+
+        # need to clamp for cases like converting +1.0 to sFixPt(1,15) which overlaods the quantizer slightly
+        n2 = clamp( n1, T )
+        return  FixPt{e,T}( n2 )
 end
 
 
@@ -132,7 +135,14 @@ function Base.:*( n1::FixPt{e1}, n2::FixPt{e2} ) where { e1,e2 }
         n2 = n1.n * n2.n
         return FixPt{e}( n2 )
 end
-
+function Base.:*( n1::I, n2::FixPt{e2} ) where { I<:Integer,e2 }
+        n2 = n1 * n2.n
+        return FixPt{e2}( n2 )
+end
+function Base.:*( n1::FixPt{e1}, n2::I ) where { e1,I<:Integer }
+        n2 = n1.n * n2
+        return FixPt{e1}( n2 )
+end
 
 Base.Float64( n::FixPt{e1} ) where {e1} = ldexp( Float64(n.n), e1 )
 
@@ -200,6 +210,10 @@ Base.promote_rule( ::Type{ FixPt{e1,T1 } }, ::Type{ FixPt{e2,T2 } } ) where {e1,
  
         return FixPt{e,T12shift_promote}
 end
+
+# this is assuming that any given integer will be convertable with range given by the FixPt{e1,T1 }
+Base.promote_rule( ::Type{ FixPt{e1,T1 } }, ::Type{ T2 } ) where {e1,T1,T2<:Integer} = Base.promote_rule( FixPt{e1,T1 }, FixPt{0,T2 } )
+
 
 end
 

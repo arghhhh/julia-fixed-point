@@ -45,19 +45,35 @@ struct Mint{N} <: FixedWidths.FixedWidth
  
 end
 
-Mint(n::Integer) = begin
-        # n must have a type that we have defined
-        # - FixedWidths.num_bits_required fails by default for built in Julia integer types
-        # n might be a Bint{ }
-        w = FixedWidths.num_bits_required( typeof(n) )
-        # get the "raw" integer out of a n::Bint{} or similar using Integer( )
+# type level:
+Mint( ::Type{T} ) where { T <: FixedWidths.FixedWidth } = begin
+        w = FixedWidths.num_bits_required( T )
+        return Mint{w}
+end
+# value level:
+Mint(n::T) where { T <: FixedWidths.FixedWidth } = begin
+        w = FixedWidths.num_bits_required( T )
         return Mint{w}( Integer(n) )
 end
 
+# questionable whether Mint( Bint{-10,20} ) should return Mint{5} or Mint{6}
+
+
 # truncate_lsbs should work for both positive and negative b
 # (negative b is lossless)
-FixedWidths.truncate_lsbs( n::Mint{N}, b ) where {N} = Bint{N-b}( n.n >> b )
+FixedWidths.truncate_lsbs( n::Mint{N}, b ) where {N} = Mint{N-b}( n.n >> b )
+FixedWidths.truncate_lsbs( ::Type{Mint{N}}, b ) where {N} = Mint{N-b}
+
+
 FixedWidths.num_bits_required( ::Type{Mint{N}} ) where {N} = N
+FixedWidths.left_shift( ::Type{Mint{N}}, b::Integer ) where {N} = begin
+        @assert b >= 0
+        Mint{N+b}
+end 
+FixedWidths.left_shift( n::Mint{N}, b::Integer ) where {N} = begin
+        @assert b >= 0
+        Mint{N+b}( n.n << b )
+end
 
 
 # the following allows arithmetic between Mint{N} and Bint{lo,hi} with result type Mint{N}
@@ -67,9 +83,9 @@ for op in ( :+, :-, :* ) eval( quote
         (Base.$op)( ::Type{Mint{N1}}, ::Type{I }       ) where {N1, I<:Integer   } = Mint{    N1    }
         (Base.$op)( ::Type{I}       , ::Type{Mint{N2}} ) where { I<:Integer,   N2} = Mint{       N2 }
         # value level:
-        (Base.$op)( a::Mint{N1}, b::Mint{N2} ) where {N1,N2} = Mint{min(N1,N2)}( a.n + b.n )
-        (Base.$op)( a::Mint{N1}, b::I  ) where {N1, I<:Integer   } = Mint{    N1    }( a.n + b   )
-        (Base.$op)( a::I , b::Mint{N2} ) where {I<:Integer,   N2} = Mint{       N2 }( a   + b.n )
+        (Base.$op)( a::Mint{N1}, b::Mint{N2} ) where {N1,N2} = Mint{min(N1,N2)}( (Base.$op)( a.n , b.n ) )
+        (Base.$op)( a::Mint{N1}, b::I  ) where {N1, I<:Integer } = Mint{ N1 }(   (Base.$op)( a.n , b   ) )
+        (Base.$op)( a::I , b::Mint{N2} ) where {I<:Integer, N2 } = Mint{ N2 }(   (Base.$op)( a   , b.n ) )
         end )
 end
 
@@ -87,7 +103,7 @@ end
 (::Type{I})(n::Mint) where {I<:Signed  } = Base.signed(n)
 #Integer( n::Bint{lo,hi} ) where {lo,hi} = n.n
 # convert to Float
-(::Type{F})( n::Mint ) where {F<:AbstractFloat} = F( Base.unsigned(n) )
+(::Type{F})( n::Mint ) where {F<:AbstractFloat} = F( Base.signed(n) )
 
 
 

@@ -51,6 +51,7 @@ end
 # truncate_lsbs should work for both positive and negative b
 # (negative b is lossless)
 FixedWidths.truncate_lsbs( n::Bint{lo,hi}, b ) where {lo,hi} = Bint{lo>>b,hi>>b}( n.n >> b )
+FixedWidths.truncate_lsbs( ::Type{Bint{lo,hi}}, b ) where {lo,hi} = Bint{lo>>b,hi>>b}
 
 # # lossless
 # can have left shift because it should be lossless
@@ -294,11 +295,11 @@ end
 # so show( Bint{-3,3}(2) ) is using this to show the type, and using Julia builtin 
 # stuff to show the value 2.
 
+#=
 function Base.show( io::IO, ::Type{Bint} )  
         print( io, "Bint" )
 end
-
-function Base.show( io::IO, ::Type{Bint{lo,hi}} )  where { lo, hi }
+function Base.show( io::IO, ::Type{Bint{lo,hi}} )  where { lo<:Integer, hi<:Integer }
         if lo < 0 && ispow2( -lo ) && ispow2( hi+1 ) && -lo == hi+1
                 # signed and bounds correspond to signed number:
                 nbits = num_bits_required_unsigned(hi)+1 # plus 1 for the sign bit
@@ -316,7 +317,7 @@ function Base.show( io::IO, ::Type{Bint{lo,hi}} )  where { lo, hi }
                 print(io, "Bint{", lo, ",", hi, "}" )
         end
 end 
-
+=#
 
 end # module
 

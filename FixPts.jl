@@ -61,6 +61,12 @@ function uFixPt( ::Type{ FixPt{e,Bint{lo,hi}} } ) where {e,lo,hi}
         nbits = Bints.num_bits_required_unsigned( Bint{lo,hi} )
         return uFixPt(nbits-q,q)
 end
+function sFixPt( ::Type{ FixPt{e,Mint{N} } } ) where {e,N}
+        return sFixPt(n+e,-e)
+end
+function uFixPt( ::Type{ FixPt{e,Mint{N} } } ) where {e,N}
+        return uFixPt(n+e,-e)
+end
 function get_i( ::Type{ FixPt{e,Bint{lo,hi}} } ) where {e,lo,hi}
         q = -e
         nbits = lo >= 0 ? Bints.num_bits_required_unsigned( Bint{lo,hi} ) :
@@ -84,12 +90,17 @@ end
 # the result of this is Vector{FixPt{?,?}} (alias for Array{FixPt{?,?}, 1})
 
 # these are all at the type level:
+
 function Base.show( io::IO, ::Type{ FixPt } )
         print(io, "FixPt{?,?}" )
 end
 function Base.show( io::IO, ::Type{ FixPt{e} } ) where {e}
         print(io, "FixPt{$(e),?}" )
 end
+function Base.show( io::IO, ::Type{ FixPt{e,Bint} } ) where {e}
+        print(io, "FixPt{$(e),Bint{?,?}}" )
+end
+
 function Base.show( io::IO, ::Type{ FixPt{e,Bint{lo,hi}} } ) where {e,lo,hi}
         if lo == hi
                 # constant value
@@ -144,8 +155,11 @@ function Base.:%( n::FixPt{n_e}, ::Type{ FixPt{e,T} } ) where {n_e,e,T}
         return n4
 end
 
-#  truncation should always be explicit:
 
+
+
+#  truncation should always be explicit:
+#=
 function truncate_lsbs_to(e1, n::FixPt{e,Bint{lo,hi} } ) where {e,lo,hi}
         n_bits_truncated = e1 - e
         n    = FixedWidths.truncate_lsbs( n.n.n , n_bits_truncated )
@@ -153,7 +167,49 @@ function truncate_lsbs_to(e1, n::FixPt{e,Bint{lo,hi} } ) where {e,lo,hi}
         n_hi = FixedWidths.truncate_lsbs( hi    , n_bits_truncated )
         return FixPt{e1,Bint{n_lo,n_hi}}( n ) 
 end
+function truncate_lsbs_to(e1, ::Type{ FixPt{e,Bint{lo,hi} } } ) where {e,lo,hi}
+        n_bits_truncated = e1 - e
+        n_lo = FixedWidths.truncate_lsbs( lo    , n_bits_truncated )
+        n_hi = FixedWidths.truncate_lsbs( hi    , n_bits_truncated )
+        return FixPt{e1,Bint{n_lo,n_hi}}
+end
+=#
+function truncate_lsbs_to(e1, n::FixPt{e,T } ) where {e,T}
+        n_bits_truncated = e1 - e
+ 
+        n1 = FixedWidths.truncate_lsbs( n.n , n_bits_truncated )
+        y = FixPt{e1}( n1 )
+        return y
+end
+function truncate_lsbs_to(e1, ::Type{ FixPt{e,T } } ) where {e,T}
+        n_bits_truncated = e1 - e
+        Ty = FixedWidths.truncate_lsbs( T    , n_bits_truncated )
+        return FixPt{e1,Ty}
+end
 
+function truncate_lsbs_by(n_bits_truncated, n::FixPt{e,T } ) where {e,T} 
+        n1 = FixedWidths.truncate_lsbs( n.n , n_bits_truncated )
+        y = FixPt{e1}( n1 )
+        return y
+end
+function truncate_lsbs_by(n_bits_truncated, ::Type{ FixPt{e,T } } ) where {e,T}
+        Ty = FixedWidths.truncate_lsbs( T    , n_bits_truncated )
+        return FixPt{e1,Ty}
+end
+
+
+
+
+
+# Could use Julia's round( ) with mode set to :Down for truncation
+# - but this gets complicated quick, and it isn't ideal when really, for hardware, 
+#   you want to say, truncate some bits, and let the bounds be calculated rather 
+#   than say, round( FixPt{e,Bint{lo,hi}}, x )
+#   (could define  round( FixPt{e,Bint} , x )
+# 
+# function Base.round( FixPt{e2,Bint}, x::FixPt{e,Bint{lo,hi}, RoundDown } ) where {e2,e,lo,hi}
+#         return truncate_lsbs_to( e2, x )
+# end
 
 # the built-in clamp to type function assumes the type T is T<:Integer which is not true for FixPt
 # restrict the input to have same exponent - simpler and make extension and truncation individually explicit
