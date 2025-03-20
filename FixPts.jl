@@ -11,7 +11,7 @@ import FixPtImpl
 
 import .Bints:Bint
 import .Mints:Mint
-import .FixPtImpl:FixPt, num_bits_required
+import .FixPtImpl:FixPt, num_bits_required, bitwidth
 
 
 import FixedWidths

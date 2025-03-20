@@ -73,7 +73,16 @@ function FixPt{e,T_out}( n::FixPt{e_in,T_in} ) where {e, e_in, T_out, T_in}
 end
 
 
+# renaming num_bits_required to be bitwidth.  TODO: remove this once migration to new name is complete
 function num_bits_required( ::Type{ FixPt{e,T} } ) where {e,T }
+        return FixedWidths.num_bits_required( T )
+end
+# type level:
+function bitwidth( ::Type{ FixPt{e,T} } ) where {e,T }
+        return FixedWidths.num_bits_required( T )
+end
+# value level:
+function bitwidth( n::FixPt{e,T} ) where {e,T }
         return FixedWidths.num_bits_required( T )
 end
 
@@ -213,6 +222,9 @@ end
 
 # this is assuming that any given integer will be convertable with range given by the FixPt{e1,T1 }
 Base.promote_rule( ::Type{ FixPt{e1,T1 } }, ::Type{ T2 } ) where {e1,T1,T2<:Integer} = Base.promote_rule( FixPt{e1,T1 }, FixPt{0,T2 } )
+
+import Random
+Random.rand(rng::Random.AbstractRNG, ::Random.SamplerType{ FixPt{e1,T1 }}) where {e1,T1} = FixPt{e1,T1 }(rand(rng, T1))
 
 
 end

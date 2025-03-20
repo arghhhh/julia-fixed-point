@@ -291,6 +291,10 @@ function uBint( n::FixedWidths.FixedWidth )
         return uBint( FixedWidths.num_bits_required( typeof(n) ) |> Int )( Base.unsigned( n ) )
 end
 
+import Random
+Random.rand(rng::Random.AbstractRNG, ::Random.SamplerType{ Bint{lo,hi}}) where {lo,hi} = Bint{lo,hi}(rand(rng, lo:hi))
+
+
 # Note: this is acting on the type only
 # so show( Bint{-3,3}(2) ) is using this to show the type, and using Julia builtin 
 # stuff to show the value 2.

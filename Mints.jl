@@ -149,5 +149,11 @@ function Base.:~( n1::Mint{N} ) where {N}
         return (~Mint{N})( ~n1.n )
 end
 
+# TODO: should not have Int64 below - only works for N < 63/64 ish...
+#       the type of Mint.n should probably be tightened up and made to work in all cases
+#       including Int128 and BigInt
+import Random
+Random.rand(rng::Random.AbstractRNG, ::Random.SamplerType{ Mint{N}}) where {N} = Mint{N}(rand(rng, Int64))
+
 
 end # module
