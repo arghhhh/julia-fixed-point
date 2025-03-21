@@ -28,8 +28,7 @@ struct Bint{lo,hi} <: FixedWidths.FixedWidth
                 if !( lo <= n1 <= hi )
                         throw( OverflowError( "$n, $n1 out of range $(lo)..$(hi) ") )
                 end
-                new{lo,hi}( n )
-     #           new{lo,hi}( n1 )
+                new{lo,hi}( promote_type( typeof(lo), typeof(hi) )(n1) )
         end
 
         # make a Bint from one with a narrower range
@@ -37,11 +36,10 @@ struct Bint{lo,hi} <: FixedWidths.FixedWidth
                 if !( lo <= n_lo  && hi >= n_hi )
                         throw( OverflowError( "$n out of range $(lo)..$(hi) ") )
                 end
-                new{lo,hi}( n.n )
+                new{lo,hi}( promote_type( typeof(lo), typeof(hi) )(n.n) )
         end     
 
         function Bint{lo,hi}( n::Integer, checked::Val{false} ) where {lo,hi }
-#                new{lo,hi}( n )
                 new{lo,hi}( n )
         end
 
@@ -299,11 +297,11 @@ Random.rand(rng::Random.AbstractRNG, ::Random.SamplerType{ Bint{lo,hi}}) where {
 # so show( Bint{-3,3}(2) ) is using this to show the type, and using Julia builtin 
 # stuff to show the value 2.
 
-#=
+
 function Base.show( io::IO, ::Type{Bint} )  
         print( io, "Bint" )
 end
-function Base.show( io::IO, ::Type{Bint{lo,hi}} )  where { lo<:Integer, hi<:Integer }
+function Base.show( io::IO, ::Type{Bint{lo,hi}} )  where {lo,hi} # { lo<:Integer, hi<:Integer }
         if lo < 0 && ispow2( -lo ) && ispow2( hi+1 ) && -lo == hi+1
                 # signed and bounds correspond to signed number:
                 nbits = num_bits_required_unsigned(hi)+1 # plus 1 for the sign bit
@@ -321,7 +319,7 @@ function Base.show( io::IO, ::Type{Bint{lo,hi}} )  where { lo<:Integer, hi<:Inte
                 print(io, "Bint{", lo, ",", hi, "}" )
         end
 end 
-=#
+
 
 end # module
 

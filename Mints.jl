@@ -45,6 +45,12 @@ struct Mint{N} <: FixedWidths.FixedWidth
  
 end
 
+# need a custom equality function because the MSBs at and beyond bit N could be arbitrary
+Base.:(==)( lhs::Mint{N}, rhs::Mint{N} ) where {N} = begin
+        lsb_mask = ~((~0)<<N)
+        return lhs.n & lsb_mask == rhs.n & lsb_mask
+end
+
 # type level:
 Mint( ::Type{T} ) where { T <: FixedWidths.FixedWidth } = begin
         w = FixedWidths.num_bits_required( T )
@@ -101,7 +107,9 @@ end
 # extract the integer without the bounds:
 (::Type{I})(n::Mint) where {I<:Unsigned} = Base.unsigned(n)
 (::Type{I})(n::Mint) where {I<:Signed  } = Base.signed(n)
-#Integer( n::Bint{lo,hi} ) where {lo,hi} = n.n
+
+# this is needed by split:
+Integer( n::Mint{N} ) where {N} = n.n
 # convert to Float
 (::Type{F})( n::Mint ) where {F<:AbstractFloat} = F( Base.signed(n) )
 

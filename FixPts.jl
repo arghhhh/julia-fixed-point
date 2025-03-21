@@ -217,30 +217,58 @@ Base.clamp( n::FixPt{e,Bint{nlo,nhi}}, ::Type{ FixPt{e,Bint{lo,hi}} }) where {e,
         FixPt{e,Bint{lo,hi}}( clamp( n.n.n, lo, hi ) )
 
 
+# 
+# # split a FixPt number at given exponent e2
+# function split( n::FixPt{e, Bint{lo,hi} }, e2 ) where {e,lo,hi}
+#         n_lsbs = ( -e + e2 )
+#         lsb_mask = ~( (~0) << n_lsbs )
+# 
+#         msbs = FixPt{e2,Bint{lo>>n_lsbs,hi>>n_lsbs}}( FixedWidths.truncate_lsbs( n.n, n_lsbs ) )
+#         lsbs = FixPt{e ,Bint{0,lsb_mask}}( n.n & lsb_mask )
+# 
+#         @assert n == msbs + lsbs 
+#         return msbs, lsbs
+# end
 
-# split a FixPt number at given exponent e2
-function split( n::FixPt{e, Bint{lo,hi} }, e2 ) where {e,lo,hi}
+
+function split( n::FixPt{e, T }, e2 ) where {e,T}
         n_lsbs = ( -e + e2 )
         lsb_mask = ~( (~0) << n_lsbs )
 
-        msbs = FixPt{e2,Bint{lo>>n_lsbs,hi>>n_lsbs}}( FixedWidths.truncate_lsbs( n.n, n_lsbs ) )
-        lsbs = FixPt{e ,Bint{0,lsb_mask}}( n.n & lsb_mask )
+        msbs = FixPt{e2}( FixedWidths.truncate_lsbs( n.n, n_lsbs ) )
+   #     lsbs = FixPt{e ,Bint{0,lsb_mask}}( n.n.n & lsb_mask )  # TODO: exploiting Bint and Mint both having a field n
+        lsbs = FixPt{e ,Bint{0,lsb_mask}}( Integer(n.n) & lsb_mask )
 
+        @show msbs lsbs msbs + lsbs n
+        dump(n)
+        dump( msbs + lsbs )
         @assert n == msbs + lsbs 
         return msbs, lsbs
 end
 
+
+
 # split a number into single bits
 # - the MSB will have negative weight if lo < 0
-function split( n::FixPt{e, Bint{lo,hi} } ) where {e,lo,hi}
+# function split( n::FixPt{e, Bint{lo,hi} } ) where {e,lo,hi} ======================
+function split( n::FixPt{e,T} ) where {e,T}
         n1 = n
         r = FixPt[]
         for i in e+1:e + FixedWidths.num_bits_required( typeof(n.n) ) - 1
                 n1, b1 = split( n1, i )
                 push!( r, b1 ) 
         end
-        # push on the last part - this may be signed
-        push!( r, n1 )
+        # push on the last part - this may be signed, or a FixPt{e,Mint{1}}
+        if n1.n isa Bint || n1.n isa Mint
+                push!( r, n1 )
+        elseif n1.n isa Unsigned
+                push!( r, FixPt{e + FixedWidths.num_bits_required( typeof(n.n) ) - 1}( Bint{0,1}( n1.n ) ) )
+        elseif n1.n isa Signed
+                push!( r, FixPt{e + FixedWidths.num_bits_required( typeof(n.n) ) - 1}( Bint{-1,0}( n1.n ) ) )
+        else
+                error( "Left with $(n1)" )
+        end
+        return r
 end
 
 # coverting to/from BitVector

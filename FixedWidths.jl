@@ -33,12 +33,22 @@ end
 
 
 # explicit LSB quantization is OK
-# if b < 0, then this will be lossless - not a problem
+# if b < 0, then this will be lossless - this is still valid and not a problem
 truncate_lsbs( n, b ) = n >> b
 truncate_lsbs( ::Type{T}, b ) where {T} = T
 
 # this is the number of bits required to represent any valid value of n:
 num_bits_required( n::Type ) = error( "Type $(n) does not have a defined bit width" )
+num_bits_required(  ::Type{ Int128} ) = 128
+num_bits_required(  ::Type{ Int64 } ) = 64 
+num_bits_required(  ::Type{ Int32 } ) = 32 
+num_bits_required(  ::Type{ Int16 } ) = 16 
+num_bits_required(  ::Type{ Int8  } ) = 8  
+num_bits_required(  ::Type{UInt128} ) = 128
+num_bits_required(  ::Type{UInt64 } ) = 64 
+num_bits_required(  ::Type{UInt32 } ) = 32 
+num_bits_required(  ::Type{UInt16 } ) = 16 
+num_bits_required(  ::Type{UInt8  } ) = 8  
 
 end # module
 

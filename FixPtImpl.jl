@@ -59,8 +59,10 @@ function Base.round( ::Type{FixPt{e,T}}, x::Float64, mode::RoundingMode=Base.Rou
         n1 = round( Int64, ldexp(x,-e), mode )
 
         # need to clamp for cases like converting +1.0 to sFixPt(1,15) which overlaods the quantizer slightly
-        n2 = clamp( n1, T )
-        return  FixPt{e,T}( n2 )
+        # n2 = clamp( n1, T )
+        # return  FixPt{e,T}( n2 )
+        # but the above stops some tests from passing - where T is just specified as a Bint without bounds
+        return  FixPt{e,T}( n1 )
 end
 
 
