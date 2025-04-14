@@ -248,7 +248,10 @@ function FixedWidths.num_bits_required( ::Type{Bint{lo,hi}} ) where {lo,hi}
 
         return n
 end
-
+# value level:
+function FixedWidths.num_bits_required( ::Bint{lo,hi} ) where {lo,hi}
+        return FixedWidths.num_bits_required( Bint{lo,hi} )
+end
 # these mostly return types not values:
 
 # Bint type corresponding to nbits unsigned
@@ -297,14 +300,17 @@ Random.rand(rng::Random.AbstractRNG, ::Random.SamplerType{ Bint{lo,hi}}) where {
 # so show( Bint{-3,3}(2) ) is using this to show the type, and using Julia builtin 
 # stuff to show the value 2.
 
+#=
 
 function Base.show( io::IO, ::Type{Bint} )  
         print( io, "Bint" )
 end
 function Base.show( io::IO, ::Type{Bint{lo,hi}} )  where {lo,hi} # { lo<:Integer, hi<:Integer }
-        if lo < 0 && ispow2( -lo ) && ispow2( hi+1 ) && -lo == hi+1
+        if lo == -1 && hi == 0
+                print(io, "sBint(1)" )
+        elseif lo < 0 && ispow2( -lo ) && ispow2( hi+1 ) && -lo == hi+1
                 # signed and bounds correspond to signed number:
-                nbits = num_bits_required_unsigned(hi)+1 # plus 1 for the sign bit
+                nbits = num_bits_required_signed(lo)
                 print(io, "sBint(", nbits, ")" )
         elseif lo == 0 && ispow2( hi + 1 )
                 # unsigned and power of two
@@ -320,6 +326,7 @@ function Base.show( io::IO, ::Type{Bint{lo,hi}} )  where {lo,hi} # { lo<:Integer
         end
 end 
 
+=#
 
 end # module
 

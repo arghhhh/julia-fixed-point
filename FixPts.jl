@@ -84,6 +84,69 @@ function mFixPt(width,e=0)
 end
 
 
+# make FixPt constants:
+
+# make a fixed point out of an integer - don't have any information
+# about format - so choose the best format - which will be
+# an odd number shifted appropriately, or zero
+function FixPt( n::T ) where {T <:Integer}
+        e = 0
+        if n == 0 
+                return FixPt{e,Bint(0)}( 0 )
+        end
+        # truncate lsbs while it reaches a lsb that is set
+        while FixedWidths.truncate_lsbs(n,1) << 1 == n
+                n = FixedWidths.truncate_lsbs(n,1)
+                e = e + 1
+        end
+        return FixPt{e,Bint{n,n}}( n )
+end
+
+# for Bints, already have wordlength information,
+# so don't try to reduce the width by looking at the specific value of n
+function FixPt( n::Bint{lo,hi} ) where {lo,hi}
+        return FixPt{0,Bint{lo,hi}}(n)
+end
+
+
+
+function FixPt( n::Float64 )
+
+        # all floating point numbers (other than NaN, Inf) are 
+        # exact rationals with a power of two denominator
+
+        n1,e1 = frexp(n)
+        r = Rational( n1 )
+        @assert ispow2( r.den )
+
+        e = -ndigits( r.den, base = 2 )+1 + e1
+
+        n_reconstructed = ldexp( Float64(r.num), e )
+
+        # check for exactness:
+        @assert n == n_reconstructed
+
+     #   return FixPt{e,Int64}( r.num )
+        return FixPt( r.num ) << e
+end
+
+
+# round and clamp a Float to a FixPt built on a Bint with specified bounds
+function Base.round( ::Type{FixPt{e,Bint{lo,hi}}}, x::Float64, mode::RoundingMode=Base.Rounding.RoundNearest ) where {e,lo,hi}
+        n1 = round( Int64, ldexp(x,-e), mode )
+
+        # need to clamp for cases like converting +1.0 to sFixPt(1,15) which overlaods the quantizer slightly
+        n2 = clamp( n1, Bint{lo,hi} )
+        return  FixPt{e,Bint{lo,hi}}( n2 )
+ #       # but the above stops some tests from passing - where T is just specified as a Bint without bounds
+  #      return  FixPt{e,T}( n1 )
+end
+
+
+
+
+#=
+
 # corners of Julia that I don't fully understand - you can have types where 
 # the type parmeters are not specified - eg
 # FixPt[ uFixPt(2,3)(1), uFixPt(4,1)(2), uFixPt(1,5)(3), sFixPt(1,6)(4) ]
@@ -136,6 +199,7 @@ function Base.show( io::IO, ::Type{ FixPt{e,Bint{lo,hi}} } ) where {e,lo,hi}
         end
 end
 
+=#
 
 
 
@@ -239,9 +303,9 @@ function split( n::FixPt{e, T }, e2 ) where {e,T}
    #     lsbs = FixPt{e ,Bint{0,lsb_mask}}( n.n.n & lsb_mask )  # TODO: exploiting Bint and Mint both having a field n
         lsbs = FixPt{e ,Bint{0,lsb_mask}}( Integer(n.n) & lsb_mask )
 
-        @show msbs lsbs msbs + lsbs n
-        dump(n)
-        dump( msbs + lsbs )
+   #     @show msbs lsbs msbs + lsbs n
+   #     dump(n)
+   #     dump( msbs + lsbs )
         @assert n == msbs + lsbs 
         return msbs, lsbs
 end

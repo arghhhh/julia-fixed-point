@@ -21,6 +21,13 @@ import Bints.sBint
 
 using Test
 
+
+# TODO: multiplying a FixPt by an integer
+# eg uFixPt(8,0) * 2 could give a uFixPt(9,-1)
+#
+# or a uFixPt(8,0) * FixPt{0,Bint{2,2}}
+# want to factor constants into a shift and a bit value with a 1 in the lsb
+
 @testset "fixpt-bint" begin
 
         @test FixPt{-3}(10) === FixPt{-3,Int64}(10)

@@ -70,12 +70,13 @@ using Test
         # now increase one of the input widths by one bit:
         @test uBint(2) * sBint(4) === Bint{-24,21}  # 0..3 * -8..7 and now requires 6 bits
 
-        @test sprint( show, uBint(4)    ) == "uBint(4)"
-        @test sprint( show, sBint(4)    ) == "sBint(4)"
-        @test sprint( show, uBint(4)(2) ) == "uBint(4)(2)"
-        @test sprint( show, sBint(4)(3) ) == "sBint(4)(3)"
-        @test sprint( show, Bint{-10,10}(2) ) == "Bint{-10,10}(2)"
-        @test sprint( show, Bint{-3,3}(2) ) == "Bint{-3,3}(2)"
+        # these test the customized show (at type level) implementation for special cases of Bint
+        # @test sprint( show, uBint(4)    ) == "uBint(4)"
+        # @test sprint( show, sBint(4)    ) == "sBint(4)"
+        # @test sprint( show, uBint(4)(2) ) == "uBint(4)(2)"
+        # @test sprint( show, sBint(4)(3) ) == "sBint(4)(3)"
+        # @test sprint( show, Bint{-10,10}(2) ) == "Bint{-10,10}(2)"
+        # @test sprint( show, Bint{-3,3}(2) ) == "Bint{-3,3}(2)"
 end
 
 

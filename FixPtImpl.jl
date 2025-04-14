@@ -32,27 +32,11 @@ function FixPt{e}( n::T ) where { e, T <:Integer}
         return FixPt{e,T}( n )
 end
 
-function FixPt( n::T, e=0 ) where {T <:Integer}
-        return FixPt{e,T}( n )
+# function FixPt( n::T, e=0 ) where {T <:Integer}
+function FixPt( n::T, e ) where {T <:Integer}
+                return FixPt{e,T}( n )
 end
-function FixPt( n::Float64 )
 
-        # all floating point numbers (other than NaN, Inf) are 
-        # exact rationals with a power of two denominator
-
-        n1,e1 = frexp(n)
-        r = Rational( n1 )
-        @assert ispow2( r.den )
-
-        e = -ndigits( r.den, base = 2 )+1 + e1
-
-        n_reconstructed = ldexp( Float64(r.num), e )
-
-        # check for exactness:
-        @assert n == n_reconstructed
-
-        return FixPt{e,Int64}( r.num )
-end
 
 # round and clamp a Float to a FixPt
 function Base.round( ::Type{FixPt{e,T}}, x::Float64, mode::RoundingMode=Base.Rounding.RoundNearest ) where {e,T}
