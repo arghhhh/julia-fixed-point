@@ -19,6 +19,23 @@ abstract type FixedWidth <: Integer end
 
 # default for standard Julia integer types:
 
+
+for t in ( Int8, Int16, Int32, Int64, Int128, UInt8, UInt16, UInt32, UInt64, UInt128 )
+        eval( quote
+                #type_level, b still an int though
+                left_shift( ::Type{$(t)} , b )  = begin
+                        @assert b >= 0
+                        return T
+                end
+                # value level:
+                left_shift( n::$(t) , b ) = begin
+                        @assert b >= 0
+                        return n << b
+                end
+        end ) 
+end 
+        
+#=        
 #type_level, b still an int though
 left_shift( ::Type{T} , b ) where {T<:Integer} = begin
         @assert b >= 0
@@ -29,13 +46,17 @@ left_shift( n , b ) = begin
         @assert b >= 0
         return n << b
 end
-
-
+=#
 
 # explicit LSB quantization is OK
 # if b < 0, then this will be lossless - this is still valid and not a problem
 truncate_lsbs( n, b ) = n >> b
 truncate_lsbs( ::Type{T}, b ) where {T} = T
+
+
+# this should never need to be specialized for particular types
+lossy_left_shift( n, b ) = b >= 0 ? left_shift( n , b ) : truncate_lsbs( n, -b )
+
 
 # this is the number of bits required to represent any valid value of n:
 num_bits_required( n::Type ) = error( "Type $(n) does not have a defined bit width" )
@@ -49,6 +70,13 @@ num_bits_required(  ::Type{UInt64 } ) = 64
 num_bits_required(  ::Type{UInt32 } ) = 32 
 num_bits_required(  ::Type{UInt16 } ) = 16 
 num_bits_required(  ::Type{UInt8  } ) = 8  
+
+# value level version - there should be no need to specialize this:
+function FixedWidths.num_bits_required( ::I ) where {I<:Integer}
+        return FixedWidths.num_bits_required( I )
+end
+
+
 
 end # module
 

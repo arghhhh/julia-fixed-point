@@ -36,8 +36,9 @@ struct Mint{N} <: FixedWidths.FixedWidth
         n
         # make a new Mint, with random MSBs
         # it is fine for n to be out of range
-        Mint{N}(n) where {N} = begin
+        Mint{N}(n1) where {N} = begin
                 @assert N >= 0
+                n = Integer(n1) # extract the number if n1 is a Bint or Mint
                 new{N}( xor( rand(typeof(n)) << N , n ) )
                 # at some point in the fture, could just ignore the MSBs and not set them to rand()
                 # this is just as an insurance check whilst the Mint implementation is new and largely untested 
@@ -67,8 +68,16 @@ end
 
 # truncate_lsbs should work for both positive and negative b
 # (negative b is lossless)
-FixedWidths.truncate_lsbs( n::Mint{N}, b ) where {N} = Mint{N-b}( n.n >> b )
-FixedWidths.truncate_lsbs( ::Type{Mint{N}}, b ) where {N} = Mint{N-b}
+FixedWidths.truncate_lsbs( n::Mint{N}, b ) where {N} = begin
+        # ensure that truncating all the bits or more yields a Mint{0}:
+        b = b > N ? N : b
+        Mint{N-b}( n.n >> b )
+end
+FixedWidths.truncate_lsbs( ::Type{Mint{N}}, b ) where {N} = begin
+        # ensure that truncating all the bits or more yields a Mint{0}:
+        b = b > N ? N : b
+        Mint{N-b}
+end
 
 
 FixedWidths.num_bits_required( ::Type{Mint{N}} ) where {N} = N
@@ -132,9 +141,10 @@ Base.one(  ::Type{Mint{N}} ) where {N} = Mint{N}(1)
 Base.typemin( ::Type{Mint{N}} ) where {N} = Mint{N}
 Base.typemax( ::Type{Mint{N}} ) where {N} = Mint{N}
 
-#import Base.promote_rule
+# promotion with a Mint is unusal in that it can throw information away,
+# but this is explicitly encode by the return type being another Mint
 Base.promote_rule( ::Type{Mint{N1}} , ::Type{Mint{N2}} ) where {N1,N2} = Mint{min(N1,N2)}
-Base.promote_rule( ::Type{Mint{N}} , ::Type{S} ) where {N,S} = Mint{N}
+Base.promote_rule( ::Type{Mint{N}} , ::Type{S} ) where {N,S<:Integer} = Mint{N}
 
 
 # unary negate

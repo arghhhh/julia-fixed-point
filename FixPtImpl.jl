@@ -17,9 +17,13 @@ end
 get_exponent( n::FixPt{e,T} ) where {e,T} = e
 get_exponent( ::Type{FixPt{e,T}} ) where {e,T} = e
 
+Base.Integer( n::FixPt{e,T} ) where {e,T} = n.n
+
+
 # show FixPt at the value level:
-function Base.show( io::IO, f::FixPt{e} ) where {e}
+function Base.show( io::IO, f::FixPt{e,T} ) where {e,T}
         print(io, "FixPt{" ,e , "}(", f.n, ") #= ", ldexp( Float64( convert( Float64, f.n) ) , e ), " =#" )
+ #       dump(f)
 end 
 
 # at the type level:
@@ -32,6 +36,16 @@ function FixPt{e}( n::T ) where { e, T <:Integer}
         return FixPt{e,T}( n )
 end
 
+function FixPt{e}( n::FixPt{e1} ) where { e, e1 }
+        @assert e <= e1
+        @show e e1 n n.n FixedWidths.left_shift( n.n , e1-e )
+        println()
+        return FixPt{e}( FixedWidths.left_shift( n.n , e1-e ) )
+end
+
+# removed the default value below, because 
+# have a definition in FixPts.jl for making a FixPt from an integer that trims zero lsbs
+# 
 # function FixPt( n::T, e=0 ) where {T <:Integer}
 function FixPt( n::T, e ) where {T <:Integer}
                 return FixPt{e,T}( n )
@@ -196,18 +210,46 @@ end
 
 Base.promote_rule( ::Type{ FixPt{e1,T1 } }, ::Type{ FixPt{e2,T2 } } ) where {e1,T1,e2,T2} = begin
         e = min( e1, e2 )
-        shift = e1-e
-        @assert shift >= 0
-        T1shift = FixedWidths.left_shift( T1, shift )
-        T2shift = FixedWidths.left_shift( T2, shift )
+
+        T1shift = T1
+        T2shift = T2
+
+        if e1 > e2
+                # T1 needs extra LSBs:
+                # type level:
+                T1shift = FixedWidths.left_shift( T1, e1-e2 ) 
+        else
+                # T2 needs extra LSBs:
+                # type level:
+                T2shift = FixedWidths.left_shift( T2, e2-e1 ) # type level
+        end
+
         
+#        @show e1 T1 e2 T2 e 
+#        @show T1shift T2shift
         T12shift_promote = promote_type( T1shift, T2shift )
- 
+#        @show T12shift_promote
+#        @show FixPt{e,T12shift_promote}
+#        println()
+
         return FixPt{e,T12shift_promote}
 end
 
 # this is assuming that any given integer will be convertable with range given by the FixPt{e1,T1 }
-Base.promote_rule( ::Type{ FixPt{e1,T1 } }, ::Type{ T2 } ) where {e1,T1,T2<:Integer} = Base.promote_rule( FixPt{e1,T1 }, FixPt{0,T2 } )
+#Base.promote_rule( ::Type{ FixPt{e1,T1 } }, ::Type{ T2 } ) where {e1,T1,T2<:Integer} = Base.promote_type( FixPt{e1,T1 }, FixPt{0,T2 } )
+
+# TODO: work or thinking to be done here.
+# this used to stack overflow: promote( FixPt{0}(FixPts.Mint{5}( 117 )), FixPts.Mint{5}( 21 ) )
+# This might be doomed given that FixPt construction from an integer preserves the bit pattern, but not the value
+# eg FixPts.FixPt{-2}(1) gives 1lsb ie 0.25
+# so maybe should not have any promotions from integer to FixPt because of this.
+
+# DO NOT provide PROMOTION from INTEGER to FixPt
+# FixPt constructs the bit pattern from an integer even when the exponent is not zero
+# so the value created by conversion will be wrong.
+# Maybe it would be possible to make conversions do something different from constructors
+# - but that will get too error prone, for a feature of dubious worth.
+
 
 import Random
 Random.rand(rng::Random.AbstractRNG, ::Random.SamplerType{ FixPt{e1,T1 }}) where {e1,T1} = FixPt{e1,T1 }(rand(rng, T1))
