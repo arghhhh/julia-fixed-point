@@ -16,6 +16,13 @@ import .FixPtImpl:FixPt, num_bits_required, bitwidth
 
 import FixedWidths
 
+# It seems not to be a good idea to promote from INTEGER to FixPt - see comment in FixPtImpl.jl
+# but it should be OK to promote from Bint and Mint
+# might not get the proper integer value, because the result of promote_type might not have zero exponent
+# It really is ambiguous what the correct behaviour here should be.
+#Base.promote_rule( ::Type{ FixPt{e1,T1 } }, ::Type{ T2 } ) where {e1,T1,T2<:Bint} = Base.promote_type( FixPt{e1,T1 }, FixPt{0,T2 } )
+#Base.promote_rule( ::Type{ FixPt{e1,T1 } }, ::Type{ T2 } ) where {e1,T1,T2<:Mint} = Base.promote_type( FixPt{e1,T1 }, FixPt{0,T2 } )
+
 
 # Barrel shifters - where the RHS is a Bint 
 # type level:

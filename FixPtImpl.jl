@@ -251,6 +251,9 @@ end
 # - but that will get too error prone, for a feature of dubious worth.
 
 
+# any FixPt and any Floating Point type will promote to the Floating Point type:
+Base.promote_rule( ::Type{ FixPt{e1,T1 } }, ::Type{ F } ) where {e1,T1,F <:AbstractFloat} = F
+
 import Random
 Random.rand(rng::Random.AbstractRNG, ::Random.SamplerType{ FixPt{e1,T1 }}) where {e1,T1} = FixPt{e1,T1 }(rand(rng, T1))
 
