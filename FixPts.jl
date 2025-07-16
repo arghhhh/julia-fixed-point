@@ -86,10 +86,18 @@ function get_q( ::Type{ FixPt{e,Bint{lo,hi,T}} } ) where {e,lo,hi,T}
 end
 
 # "modulo" FixPt type, built on Mint (modulo Integer)
-function mFixPt(width,e=0)
-        return FixPt{e,Mint{width}}
-end
 
+# removed this:
+# function mFixPt(width,e=0)
+#         return FixPt{e,Mint{width}}
+# end
+# replacing with a version that allows (i,q) notation to be used - same as uFixPt and sFixPt
+function mFixPt(i,q=0)
+        return FixPt{-q,Mint{i+q}}
+end
+function mFixPt( ::Type{FixPt{ e,Bint{lo,hi,T} }} ) where {e,lo,hi,T} 
+        return FixPt{e,Mint{FixedWidths.num_bits_required(Bint{lo,hi,T}) }}
+end
 
 # make FixPt constants:
 
