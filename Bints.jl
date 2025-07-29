@@ -235,12 +235,11 @@ end
 
 num_bits_required_unsigned( n ) = begin
         @assert( n >= 0 )
-
-     #   z = zero( n )
-     #   nbits_positive = leading_zeros( z ) - leading_zeros(n)
-     #   @assert nbits_positive == ndigits( n ; base=2 )
-
-        return ndigits( n ; base=2 )
+        
+        # zero requires zero bits..
+        # this special case comes up in the important case of 
+        # determining num bits for Bint(-1,0)
+        return n == 0 ? 0 : ndigits( n ; base=2 )
 end
 
 num_bits_required_signed( n ) = begin
